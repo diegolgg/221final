@@ -1,0 +1,25 @@
+{
+  "assets": [
+    "BTC",
+    "ETH",
+    "SOL",
+    "BNB",
+    "AVAX"
+  ],
+  "symbol_map": {
+    "BTC": "BTCUSDT",
+    "ETH": "ETHUSDT",
+    "SOL": "SOLUSDT",
+    "BNB": "BNBUSDT",
+    "AVAX": "AVAXUSDT"
+  },
+  "source": "Binance public market data API",
+  "source_endpoint": "data-api.binance.vision/api/v3/klines",
+  "start_date": "2020-01-01",
+  "frequency": "1d",
+  "complete_panel_rule": "drop dates with any missing close among the five assets",
+  "feature_windows": [
+    7,
+    30
+  ]
+}
