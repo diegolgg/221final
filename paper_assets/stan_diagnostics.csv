@@ -1,0 +1,3 @@
+experiment,label,method,n_parameters_reported,max_rhat,median_rhat,min_ess_bulk,median_ess_bulk,min_ess_tail
+stan_k2_rollstd,"Stan Gaussian, K=2, rolling standardized",stan_nuts,28,1.03997,1.005765,47.6119,279.15,229.031
+stan_k3_rollstd,"Stan Gaussian, K=3, rolling standardized",stan_nuts,45,2.21499,1.74295,5.12464,6.14243,448.701

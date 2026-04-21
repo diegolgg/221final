@@ -1,0 +1,32 @@
+\contentsline {section}{\numberline {1}Introduction}{2}{section.1}%
+\contentsline {section}{\numberline {2}Data and Model}{3}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Crypto return panel}{3}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Hidden Markov model}{3}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Block likelihood decomposition}{3}{subsection.2.3}%
+\contentsline {section}{\numberline {3}Subsampling Methods}{3}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Uniform SGLD}{3}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Static TASS weighting from Young et al.}{4}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Online streaming feature weights}{4}{subsection.3.3}%
+\contentsline {section}{\numberline {4}When Should Online Streaming Help?}{5}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Oracle importance sampling}{5}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Approximate online weights}{5}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Streaming regression interpretation}{6}{subsection.4.3}%
+\contentsline {section}{\numberline {5}A Real Crypto Task Where the Conditions Apply}{7}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Why this task matches the online-weighting theory}{7}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Stress-prediction results}{8}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}Mechanism-level gradient benchmark}{8}{subsection.5.3}%
+\contentsline {section}{\numberline {6}Scaling to Full HMM Posterior Inference}{9}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Diagnostics and experimental artifacts}{9}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}Original three-state Student-t model}{9}{subsection.6.2}%
+\contentsline {subsection}{\numberline {6.3}Rolling-standardized two-state Gaussian crypto model}{10}{subsection.6.3}%
+\contentsline {subsection}{\numberline {6.4}Stan comparison}{10}{subsection.6.4}%
+\contentsline {subsection}{\numberline {6.5}Simulated benchmarks}{10}{subsection.6.5}%
+\contentsline {section}{\numberline {7}Discussion}{11}{section.7}%
+\contentsline {subsection}{\numberline {7.1}What worked}{11}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}What failed}{11}{subsection.7.2}%
+\contentsline {subsection}{\numberline {7.3}Practical recommendations}{12}{subsection.7.3}%
+\contentsline {section}{\numberline {8}Conclusion}{12}{section.8}%
+\contentsline {section}{\numberline {A}Additional Mathematical Details}{12}{appendix.A}%
+\contentsline {subsection}{\numberline {A.1}Variance of a multi-block estimator}{12}{subsection.A.1}%
+\contentsline {subsection}{\numberline {A.2}Why good state plots are not enough}{13}{subsection.A.2}%
+\contentsline {section}{\numberline {B}Reproducibility Notes}{13}{appendix.B}%

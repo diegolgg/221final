@@ -1,0 +1,14 @@
+\begin{tabular}{llrrllll}
+\toprule
+experiment & method & avg\_state\_0\_prob & avg\_state\_1\_prob & avg\_state\_2\_prob & ml\_state\_0\_share & ml\_state\_1\_share & ml\_state\_2\_share \\
+\midrule
+crypto\_student\_t\_k3\_raw & uniform & 0.995 & 0.004 & 0.000 & -- & -- & -- \\
+crypto\_student\_t\_k3\_raw & young\_static & 0.998 & 0.000 & 0.002 & -- & -- & -- \\
+crypto\_student\_t\_k3\_raw & online\_feature & 0.993 & 0.006 & 0.002 & -- & -- & -- \\
+crypto\_gaussian\_k2\_rollstd & uniform & 0.611 & 0.390 & -- & 0.625 & 0.375 & -- \\
+crypto\_gaussian\_k2\_rollstd & young\_static & 0.606 & 0.394 & -- & 0.625 & 0.375 & -- \\
+crypto\_gaussian\_k2\_rollstd & online\_feature & 0.602 & 0.398 & -- & 0.622 & 0.378 & -- \\
+stan\_k2\_rollstd & stan\_nuts & 0.595 & 0.405 & -- & 0.620 & 0.380 & -- \\
+stan\_k3\_rollstd & stan\_nuts & 0.396 & 0.421 & 0.183 & 0.370 & 0.448 & 0.183 \\
+\bottomrule
+\end{tabular}

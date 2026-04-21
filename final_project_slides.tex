@@ -1,0 +1,552 @@
+\documentclass[aspectratio=169]{beamer}
+
+\usetheme{Madrid}
+\usecolortheme{seahorse}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
+
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{xcolor}
+
+\graphicspath{{paper_assets/}}
+
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Var}{\operatorname{Var}}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+\newcommand{\CV}{\operatorname{CV}}
+
+\title[Targeted SGMCMC for Crypto HMMs]{Targeted Subsampling for Crypto Regime Models}
+\subtitle{What worked, what failed, and why online weighting is still the money idea}
+\author{Diego Luca Gonzalez Gauss}
+\institute{STAT 221 Final Project}
+\date{\today}
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{The high-level question}
+  \Large
+  Can we do scalable Bayesian regime inference for crypto returns?
+
+  \vspace{1em}
+  \normalsize
+  \begin{block}{Why this is interesting}
+    Crypto markets switch between calm, stressed, and chaos regimes. If we can infer those regimes fast and with uncertainty, we get better risk control, drawdown avoidance, and possibly, yes, more mooolah.
+  \end{block}
+
+  \begin{block}{Why this is hard}
+    HMM likelihoods want full forward-backward passes. SGMCMC avoids full passes by using subsequences, but uniform subsequences miss rare/high-impact regimes.
+  \end{block}
+\end{frame}
+
+\begin{frame}{The modeling target}
+  \begin{columns}[T]
+    \begin{column}{0.55\linewidth}
+      \begin{itemize}
+        \item Observations: daily crypto returns.
+        \item Latent state $z_t$: market regime.
+        \item Emission model:
+        \[
+          y_t \mid z_t=k \sim f_k(\theta_k).
+        \]
+        \item Transition:
+        \[
+          z_t \mid z_{t-1} \sim \operatorname{Categorical}(A_{z_{t-1},:}).
+        \]
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.42\linewidth}
+      \begin{block}{Interpretation}
+        State 0 might be ``normal market.''
+
+        State 1 might be ``stress/high volatility.''
+
+        A good posterior answers: are we entering the bad regime, and how sure are we?
+      \end{block}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Why stochastic-gradient MCMC?}
+  Split the time series into blocks $C_1,\dots,C_B$:
+  \[
+    \log p(\theta \mid y_{1:T})
+    =
+    \log p(\theta)+\sum_{b=1}^B \ell_b(\theta).
+  \]
+
+  Full gradient:
+  \[
+    G(\theta)=\nabla\log p(\theta)+\sum_{b=1}^B g_b(\theta),
+    \qquad g_b(\theta)=\nabla \ell_b(\theta).
+  \]
+
+  Stochastic-gradient MCMC replaces the sum with sampled blocks:
+  \[
+    \widehat G(\theta)=
+    \nabla\log p(\theta)
+    +
+    \frac{1}{M}\sum_{m=1}^M
+    \frac{g_{I_m}(\theta)}{p_{I_m}}.
+  \]
+
+  \begin{block}{Core design choice}
+    Which blocks should we sample?
+  \end{block}
+\end{frame}
+
+\begin{frame}{Uniform sampling is easy, but kind of dumb}
+  \begin{columns}[T]
+    \begin{column}{0.52\linewidth}
+      Uniform block sampling:
+      \[
+        p_b=\frac{1}{B}.
+      \]
+
+      \vspace{0.8em}
+      This is unbiased and simple.
+
+      \vspace{0.8em}
+      But if most blocks are boring and a few blocks contain crashes, jumps, or rare regimes, uniform sampling spends most computation on low-value blocks.
+    \end{column}
+    \begin{column}{0.42\linewidth}
+      \begin{block}{Crypto analogy}
+        Uniform sampling treats a sideways Tuesday and an exchange-liquidation cascade as equally informative.
+
+        That is emotionally democratic.
+
+        It is not computationally optimal.
+      \end{block}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{TASS: targeted subsampling from Ou, Young, Sen, Dunson 2024}
+  \begin{block}{Rationale}
+    For HMMs with rare latent states, uniform subsequences often exclude rare-state observations. Then gradients for rare-state parameters are noisy or prior-dominated.
+  \end{block}
+
+  If latent states were known, define the component-wise block gradient
+  \[
+    \gamma_{n,i}(\theta)=
+    \sum_{t\in C_n}
+    \partial_{\theta_i}
+    \left[
+      \log p_\theta(y_t\mid x_t)
+      +\log p_\theta(x_t\mid x_{t-1})
+    \right].
+  \]
+
+  For component $i$, an unbiased one-block estimator is
+  \[
+    \widehat G_i=\frac{\gamma_{J,i}}{a^{(i)}_J},
+    \qquad J\sim a^{(i)}.
+  \]
+\end{frame}
+
+\begin{frame}{TASS math in one slide}
+  The second moment is
+  \[
+    \E\{\widehat G_i^2\}
+    =
+    \sum_{n=1}^B
+    \frac{\gamma_{n,i}(\theta)^2}{a_n^{(i)}}.
+  \]
+
+  Minimize over probabilities $a_n^{(i)}$:
+  \[
+    a_n^{(i),\star}
+    \propto
+    |\gamma_{n,i}(\theta)|.
+  \]
+
+  \begin{block}{Translation}
+    Sample blocks in proportion to how much they matter for that parameter.
+  \end{block}
+
+  \begin{block}{Practical TASS approximation}
+    Replace unknown states by initial cluster labels, fix weights near a pilot/MAP value, and over-sample blocks with rare/extreme clusters.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Where our online model enters}
+  Static TASS computes weights once:
+  \[
+    p_b^{S}
+    =
+    (1-\lambda)
+    \frac{\widehat a_b^{S}}{\sum_r \widehat a_r^{S}}
+    +
+    \frac{\lambda}{B}.
+  \]
+
+  \vspace{0.7em}
+  Online weighting asks:
+
+  \begin{center}
+    \Large
+    Can the chain learn which blocks are important as it runs?
+  \end{center}
+
+  We build block features $w_b$:
+  \begin{itemize}
+    \item absolute returns,
+    \item squared returns,
+    \item rolling volatility,
+    \item market-wide stress,
+    \item cross-sectional dispersion.
+  \end{itemize}
+
+  Then fit a streaming model:
+  \[
+    \widehat a_{b,t}^{O}
+    =
+    \exp\{\widehat\beta_t^\top w_b/2\}
+    \approx
+    \norm{g_b(\theta_t)}.
+  \]
+\end{frame}
+
+\begin{frame}{Online weighting rule}
+  Observe sampled block-gradient feedback:
+  \[
+    z_s=\log\{\norm{\widetilde g_{I_s}(\theta_s)}^2+\epsilon\}.
+  \]
+
+  Discounted ridge update:
+  \[
+    \widehat\beta_t
+    =
+    \arg\min_\beta
+    \sum_{s<t}
+    \rho^{t-s}
+    \left(z_s-\beta^\top w_{I_s}\right)^2
+    +
+    \tau\norm{\beta}^2.
+  \]
+
+  Sampling rule:
+  \[
+    p_{b,t}^{O}
+    =
+    (1-\lambda)
+    \frac{\exp\{\widehat\beta_t^\top w_b/2\}}
+    {\sum_r \exp\{\widehat\beta_t^\top w_r/2\}}
+    +
+    \frac{\lambda}{B}.
+  \]
+\end{frame}
+
+\begin{frame}{When online weighting should help}
+  Let $a_b=\norm{g_b(\theta)}$.
+
+  Uniform second moment:
+  \[
+    B\sum_b a_b^2.
+  \]
+
+  Oracle importance sampling:
+  \[
+    p_b^\star\propto a_b,
+    \qquad
+    \text{second moment }=\left(\sum_b a_b\right)^2.
+  \]
+
+  Uniform inefficiency:
+  \[
+    \frac{B\sum_b a_b^2}{(\sum_b a_b)^2}
+    =
+    1+\CV(a)^2.
+  \]
+
+  \begin{block}{The whole game}
+    Online weighting helps when block gradient norms are heterogeneous and predictable.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Online vs static TASS: formal comparison}
+  Let current block importance be
+  \[
+    a_{b,t}=\norm{g_b(\theta_t)}.
+  \]
+
+  For any sampling rule $p$, define the stochastic-gradient second moment
+  \[
+    Q_t(p)=\sum_{b=1}^B \frac{a_{b,t}^2}{p_b}.
+  \]
+
+  \begin{block}{Exact win condition}
+    Online is mathematically better than static TASS at time $t$ iff
+    \[
+      Q_t(p_t^O)<Q_t(p^S).
+    \]
+  \end{block}
+
+  \begin{block}{Interpretation}
+    Static loses when $\widehat a_b^S$ is a stale proxy for today's $a_{b,t}$; online wins when $\widehat a_{b,t}^O$ tracks today's high-gradient blocks better.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Prediction-error view of static vs online}
+  Ignore the small exploration floor for intuition and write
+  \[
+    \widehat a_{b,t}=a_{b,t}\exp(\delta_{b,t}),
+    \qquad
+    \pi_{b,t}=\frac{a_{b,t}}{\sum_r a_{r,t}}.
+  \]
+
+  Then the inefficiency relative to oracle is exactly
+  \[
+    \frac{Q_t(\widehat p_t)}
+    {Q_t(p_t^\star)}
+    =
+    \E_{\pi_t}[e^{\delta_t}]
+    \E_{\pi_t}[e^{-\delta_t}].
+  \]
+
+  Therefore online beats static when
+  \[
+    \E_{\pi_t}[e^{\delta^O_t}]
+    \E_{\pi_t}[e^{-\delta^O_t}]
+    <
+    \E_{\pi_t}[e^{\delta^S_t}]
+    \E_{\pi_t}[e^{-\delta^S_t}].
+  \]
+
+  \begin{block}{Bounded-error sufficient condition}
+    If $|\delta^O_{b,t}|\le\varepsilon^O_t$ and $|\delta^S_{b,t}|\le\varepsilon^S_t$, smaller current error means smaller worst-case inefficiency: $e^{2\varepsilon^O_t}<e^{2\varepsilon^S_t}$.
+  \end{block}
+\end{frame}
+
+\begin{frame}{When should the update beat static?}
+  Suppose current log-importance follows a drifting feature model:
+  \[
+    \log a_{b,t}
+    =
+    \frac{1}{2}\beta_t^\top w_b+\xi_{b,t}.
+  \]
+
+  Static TASS uses a frozen pilot $\widehat\beta_0$:
+  \[
+    \delta^S_{b,t}
+    \approx
+    \frac{1}{2}(\widehat\beta_0-\beta_t)^\top w_b.
+  \]
+
+  Online uses the discounted update $\widehat\beta_t$:
+  \[
+    \delta^O_{b,t}
+    \approx
+    \frac{1}{2}(\widehat\beta_t-\beta_t)^\top w_b.
+  \]
+
+  \begin{block}{Clean sufficient story}
+    Online beats static when current estimation error is smaller than stale-model drift:
+    \[
+      \sup_b |(\widehat\beta_t-\beta_t)^\top w_b|
+      <
+      \sup_b |(\widehat\beta_0-\beta_t)^\top w_b|.
+    \]
+  \end{block}
+\end{frame}
+
+\begin{frame}{A sufficient condition}
+  \small
+  Suppose predicted gradient norms satisfy
+  \[
+    e^{-\varepsilon}a_b
+    \le
+    \widehat a_b
+    \le
+    e^\varepsilon a_b.
+  \]
+
+  With exploration floor $\lambda$, online beats uniform if
+  \[
+    \frac{e^{2\varepsilon}}{1-\lambda}
+    <
+    1+\CV(a)^2.
+  \]
+
+  \begin{center}
+    \includegraphics[height=0.42\textheight]{online_usefulness_region.pdf}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Scale down to an actual crypto task}
+  \begin{block}{Forward-looking target}
+    At the end of each 10-day block, predict whether the next 10-day equal-weight crypto basket return is a stress event:
+    \[
+      y_b=\mathbf 1\{R_{b+1}^{\mathrm{mkt}}\le -7\%\}.
+    \]
+  \end{block}
+
+  \begin{block}{Features}
+    Current-block return, volatility, drawdown, downside pressure, cross-asset dispersion, tail counts, and asset-specific vol/downside summaries.
+  \end{block}
+
+  \begin{alertblock}{This is a real crypto question}
+    Should we be risk-on or risk-off for the next two weeks?
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{Why this task is covered by the math}
+  Fit a logistic stress model:
+  \[
+    h_\beta(w_b)=\sigma(\beta^\top w_b),
+    \qquad
+    \ell_b(\beta)=\text{cross-entropy}(y_b,h_\beta(w_b)).
+  \]
+
+  The block gradient is
+  \[
+    g_b(\beta)=\nabla \ell_b(\beta)
+    =
+    \{h_\beta(w_b)-y_b\}w_b.
+  \]
+
+  \begin{block}{Same useful-regime condition}
+    If a few blocks are high-loss/high-gradient, and cheap crypto features predict them, online weighting should improve stochastic training.
+  \end{block}
+
+  \begin{block}{Why static can get stale}
+    The stress signature changes: volatility, downside skew, dispersion, liquidation-like tails. Online can track; frozen weights cannot.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Actual crypto task results}
+  \centering
+  \resizebox{0.94\linewidth}{!}{\input{paper_assets/table_actual_crypto_risk.tex}}
+
+  \vspace{0.7em}
+  \begin{block}{Readout}
+    Online has the best log loss, Brier score, AUC, and top-risk stress concentration.
+  \end{block}
+
+  \begin{alertblock}{Trading caveat}
+    Static TASS wins this simple total-return threshold rule. Online is the cleanest risk forecaster; trading P\&L is a noisy downstream functional.
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{Online risk scores over time}
+  \begin{center}
+    \includegraphics[width=0.92\linewidth]{actual_crypto_predicted_stress_probability.png}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Money-flavored diagnostic}
+  \begin{center}
+    \includegraphics[height=0.58\textheight]{actual_crypto_risk_off_equity_curves.png}
+  \end{center}
+
+  \begin{block}{Interpretation}
+    \small
+    The risk-off rule is intentionally simple: hold crypto unless predicted stress is top-quartile, then hold cash.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Then we tried to scale to full HMM inference}
+  \begin{block}{The hope}
+    Use the same targeted weighting idea inside SGLD for Bayesian HMM posterior sampling.
+  \end{block}
+
+  \begin{block}{The reality}
+    Once the target is a full HMM posterior, gradient variance is no longer the only bottleneck.
+  \end{block}
+
+  \begin{itemize}
+    \item Label switching and multimodality.
+    \item Weakly identified third regime.
+    \item Transition/covariance coupling.
+    \item Finite-step SGLD bias and numerical stability constraints.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{What happened empirically}
+  \begin{block}{Original $K=3$ Student-$t$ crypto model}
+    Collapsed into state 0 over 99\% of the time. Expensive and not interpretable.
+  \end{block}
+
+  \begin{block}{$K=2$ rolling-standardized Gaussian model}
+    Much healthier occupancy: roughly 60/40 calm vs stress states.
+  \end{block}
+
+  \begin{block}{But}
+    SGLD chains still mixed poorly. Stan/NUTS mixed well for $K=2$, and failed for $K=3$.
+  \end{block}
+\end{frame}
+
+\begin{frame}{The useful visual result}
+  \begin{center}
+    \includegraphics[height=0.78\textheight]{crypto_k2_state_probabilities.pdf}
+  \end{center}
+\end{frame}
+
+\begin{frame}{The painful diagnostic result}
+  \begin{center}
+    \includegraphics[height=0.58\textheight]{sgmcmc_mixing_summary.pdf}
+  \end{center}
+
+  \begin{block}{Interpretation}
+    \small
+    Good-looking state probabilities are not enough. Cross-chain diagnostics say the SGMCMC posterior samples are not trustworthy yet.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Why this does not kill the online idea}
+  \begin{itemize}
+    \item Online weighting is a gradient-estimator variance reduction tool.
+    \item Our failures were dominated by HMM posterior geometry:
+    \begin{itemize}
+      \item label switching,
+      \item weakly identified third state,
+      \item transition/covariance coupling,
+      \item finite-step SGLD bias.
+    \end{itemize}
+    \item If posterior geometry is the bottleneck, better block weights cannot magically fix the chain.
+  \end{itemize}
+
+  \begin{block}{Cleaner claim}
+    Online weighting deserves a benchmark where gradient-estimator variance is the bottleneck and feature-gradient relationships evolve over time.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Takeaways}
+  \begin{enumerate}
+    \item TASS is principled: sample subsequences in proportion to parameter-specific gradient importance.
+    \item Online weighting helps when importance is heterogeneous, feature-predictable, and nonstationary.
+    \item The actual crypto stress task matches that regime; online is the best risk forecaster.
+    \item $K=2$ rolling-standardized Gaussian HMM is the defensible Bayesian regime model.
+    \item The SGMCMC chains did not mix well enough for posterior claims.
+  \end{enumerate}
+
+  \vspace{0.8em}
+  \centering
+  \Large
+  The mooolah is not in forcing SGLD to work everywhere.\\
+  It is in using adaptivity where the math says it should pay.
+\end{frame}
+
+\begin{frame}{References}
+  \footnotesize
+  Ou, R., Young, A. L., Sen, D., and Dunson, D. B. (2024).
+  \textit{Targeted Stochastic Gradient MCMC for HMMs with Rare Latent States}.
+  Bayesian Analysis.
+
+  \vspace{0.8em}
+  Welling, M. and Teh, Y. W. (2011).
+  \textit{Bayesian Learning via Stochastic Gradient Langevin Dynamics}.
+  ICML.
+
+  \vspace{0.8em}
+  Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., and Bürkner, P.-C. (2021).
+  \textit{Rank-normalization, folding, and localization: An improved R-hat for assessing convergence of MCMC}.
+  Bayesian Analysis.
+\end{frame}
+
+\end{document}

@@ -1,0 +1,78 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\citation{ou2024tass}
+\citation{ou2024tass}
+\@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{2}{section.1}\protected@file@percent }
+\citation{ou2024tass}
+\@writefile{toc}{\contentsline {section}{\numberline {2}Data and Model}{3}{section.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Crypto return panel}{3}{subsection.2.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Hidden Markov model}{3}{subsection.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Block likelihood decomposition}{3}{subsection.2.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3}Subsampling Methods}{3}{section.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Uniform SGLD}{3}{subsection.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Static TASS weighting from Young et al.}{4}{subsection.3.2}\protected@file@percent }
+\newlabel{eq:tass-component}{{1}{4}{Static TASS weighting from Young et al}{equation.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Online streaming feature weights}{4}{subsection.3.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4}When Should Online Streaming Help?}{5}{section.4}\protected@file@percent }
+\newlabel{sec:when-useful}{{4}{5}{When Should Online Streaming Help?}{section.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Oracle importance sampling}{5}{subsection.4.1}\protected@file@percent }
+\newlabel{eq:second-moment}{{2}{5}{Oracle importance sampling}{equation.2}{}}
+\newlabel{eq:cv-factor}{{3}{5}{Oracle importance sampling}{equation.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Approximate online weights}{5}{subsection.4.2}\protected@file@percent }
+\newlabel{prop:online-useful}{{1}{5}{Sufficient condition for online weights to beat uniform}{proposition.1}{}}
+\newlabel{eq:online-condition}{{4}{5}{Sufficient condition for online weights to beat uniform}{equation.4}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces A sufficient condition for online feature-informed sampling to reduce stochastic-gradient second moment relative to uniform sampling. The green region satisfies \eqref  {eq:online-condition} with exploration floor $\lambda =0.05$. The method is most attractive when block gradient norms are highly heterogeneous and predictable from features.}}{6}{figure.1}\protected@file@percent }
+\newlabel{fig:online-region}{{1}{6}{A sufficient condition for online feature-informed sampling to reduce stochastic-gradient second moment relative to uniform sampling. The green region satisfies \eqref {eq:online-condition} with exploration floor $\lambda =0.05$. The method is most attractive when block gradient norms are highly heterogeneous and predictable from features}{figure.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Streaming regression interpretation}{6}{subsection.4.3}\protected@file@percent }
+\newlabel{eq:streaming-error}{{4.3}{7}{Streaming regression interpretation}{subsection.4.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5}A Real Crypto Task Where the Conditions Apply}{7}{section.5}\protected@file@percent }
+\newlabel{sec:actual-crypto-task}{{5}{7}{A Real Crypto Task Where the Conditions Apply}{section.5}{}}
+\newlabel{eq:crypto-risk-label}{{5}{7}{A Real Crypto Task Where the Conditions Apply}{equation.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Why this task matches the online-weighting theory}{7}{subsection.5.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Actual crypto stress-prediction task. The target is whether the next 10-day equal-weight crypto basket return is below $-7\%$. Online weighting gives the best log loss, Brier score, AUC, and concentration of realized stress events in the top-risk quartile. The risk-off strategy is included as an interpretable diagnostic rather than a production trading rule.}}{8}{table.1}\protected@file@percent }
+\newlabel{tab:actual-crypto-risk}{{1}{8}{Actual crypto stress-prediction task. The target is whether the next 10-day equal-weight crypto basket return is below $-7\%$. Online weighting gives the best log loss, Brier score, AUC, and concentration of realized stress events in the top-risk quartile. The risk-off strategy is included as an interpretable diagnostic rather than a production trading rule}{table.1}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Predicted next-block crypto stress probabilities. Red vertical markers indicate realized future stress blocks. The online score is a real-time risk signal, not a direct price forecast.}}{8}{figure.2}\protected@file@percent }
+\newlabel{fig:actual-crypto-risk-probs}{{2}{8}{Predicted next-block crypto stress probabilities. Red vertical markers indicate realized future stress blocks. The online score is a real-time risk signal, not a direct price forecast}{figure.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Stress-prediction results}{8}{subsection.5.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}Mechanism-level gradient benchmark}{8}{subsection.5.3}\protected@file@percent }
+\citation{gelman1992inference,vehtari2021rhat}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Risk-off diagnostic for the actual crypto task. The strategy holds the equal-weight crypto basket unless the model flags top-quartile stress risk, in which case it holds cash for the next block. This diagnostic is useful for interpretation, but the primary result is the predictive improvement in Table~\ref {tab:actual-crypto-risk}.}}{9}{figure.3}\protected@file@percent }
+\newlabel{fig:actual-crypto-risk-equity}{{3}{9}{Risk-off diagnostic for the actual crypto task. The strategy holds the equal-weight crypto basket unless the model flags top-quartile stress risk, in which case it holds cash for the next block. This diagnostic is useful for interpretation, but the primary result is the predictive improvement in Table~\ref {tab:actual-crypto-risk}}{figure.3}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Real-data HMM-style gradient-estimator benchmark. The target is stress-state emission-gradient contribution by 10-day block, constructed from the real crypto panel and Stan K=2 smoothed stress probabilities. Lower RMSE is better.}}{9}{table.2}\protected@file@percent }
+\newlabel{tab:real-gradient-benchmark}{{2}{9}{Real-data HMM-style gradient-estimator benchmark. The target is stress-state emission-gradient contribution by 10-day block, constructed from the real crypto panel and Stan K=2 smoothed stress probabilities. Lower RMSE is better}{table.2}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {6}Scaling to Full HMM Posterior Inference}{9}{section.6}\protected@file@percent }
+\newlabel{sec:full-hmm-results}{{6}{9}{Scaling to Full HMM Posterior Inference}{section.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}Diagnostics and experimental artifacts}{9}{subsection.6.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}Original three-state Student-t model}{9}{subsection.6.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces State occupancy summaries for the original Student-$t$ model and the rolling-standardized Gaussian comparisons. The original $K=3$ Student-$t$ model collapses into state 0. The $K=2$ Gaussian model gives healthier occupancies near a 60/40 split.}}{10}{table.3}\protected@file@percent }
+\newlabel{tab:occupancy}{{3}{10}{State occupancy summaries for the original Student-$t$ model and the rolling-standardized Gaussian comparisons. The original $K=3$ Student-$t$ model collapses into state 0. The $K=2$ Gaussian model gives healthier occupancies near a 60/40 split}{table.3}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces SGLD diagnostics aggregated from saved four-chain runs. Values are computed on scalar posterior summaries such as transition probabilities, state covariance traces, and selected means. All stochastic-gradient runs have poor mixing by conventional standards.}}{10}{table.4}\protected@file@percent }
+\newlabel{tab:sgmcmc-diag}{{4}{10}{SGLD diagnostics aggregated from saved four-chain runs. Values are computed on scalar posterior summaries such as transition probabilities, state covariance traces, and selected means. All stochastic-gradient runs have poor mixing by conventional standards}{table.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}Rolling-standardized two-state Gaussian crypto model}{10}{subsection.6.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.4}Stan comparison}{10}{subsection.6.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.5}Simulated benchmarks}{10}{subsection.6.5}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Smoothed posterior probability of the high-volatility state for the two-state rolling-standardized crypto HMM. The simplified target produces interpretable latent-state behavior, but the stochastic-gradient chains still have poor cross-chain diagnostics.}}{11}{figure.4}\protected@file@percent }
+\newlabel{fig:crypto-state-probs}{{4}{11}{Smoothed posterior probability of the high-volatility state for the two-state rolling-standardized crypto HMM. The simplified target produces interpretable latent-state behavior, but the stochastic-gradient chains still have poor cross-chain diagnostics}{figure.4}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {7}Discussion}{11}{section.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}What worked}{11}{subsection.7.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}What failed}{11}{subsection.7.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces Stan/NUTS diagnostics for rolling-standardized Gaussian HMMs. Stan succeeds for $K=2$ but not for $K=3$, supporting the conclusion that three crypto regimes are weakly identified under this specification.}}{12}{table.5}\protected@file@percent }
+\newlabel{tab:stan-diag}{{5}{12}{Stan/NUTS diagnostics for rolling-standardized Gaussian HMMs. Stan succeeds for $K=2$ but not for $K=3$, supporting the conclusion that three crypto regimes are weakly identified under this specification}{table.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}Practical recommendations}{12}{subsection.7.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {8}Conclusion}{12}{section.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {A}Additional Mathematical Details}{12}{appendix.A}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.1}Variance of a multi-block estimator}{12}{subsection.A.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Univariate simulated HMM benchmark. The observed series has clear stress-state bursts, and all three samplers recover plausible average state occupancy, but chain diagnostics remain poor. This indicates that reasonable-looking state probabilities can coexist with unreliable posterior sampling.}}{13}{figure.5}\protected@file@percent }
+\newlabel{fig:sim-recovery}{{5}{13}{Univariate simulated HMM benchmark. The observed series has clear stress-state bursts, and all three samplers recover plausible average state occupancy, but chain diagnostics remain poor. This indicates that reasonable-looking state probabilities can coexist with unreliable posterior sampling}{figure.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.2}Why good state plots are not enough}{13}{subsection.A.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {B}Reproducibility Notes}{13}{appendix.B}\protected@file@percent }
+\bibstyle{plainnat}
+\bibdata{references}
+\bibcite{gelman1992inference}{{1}{1992}{{Gelman and Rubin}}{{}}}
+\bibcite{ou2024tass}{{2}{2024}{{Ou et~al.}}{{Ou, Young, Sen, and Dunson}}}
+\bibcite{vehtari2021rhat}{{3}{2021}{{Vehtari et~al.}}{{Vehtari, Gelman, Simpson, Carpenter, and B{\"u}rkner}}}
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Maximum $\hat  R$ across scalar posterior summaries for selected SGLD experiments. The dashed line indicates a conventional convergence target near $1.01$. None of the stochastic-gradient runs approach it.}}{14}{figure.6}\protected@file@percent }
+\newlabel{fig:mixing-summary}{{6}{14}{Maximum $\hat R$ across scalar posterior summaries for selected SGLD experiments. The dashed line indicates a conventional convergence target near $1.01$. None of the stochastic-gradient runs approach it}{figure.6}{}}
+\gdef \@abspage@last{14}
