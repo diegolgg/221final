@@ -16,12 +16,15 @@
 \newcommand{\Var}{\operatorname{Var}}
 \newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
 \newcommand{\CV}{\operatorname{CV}}
+\newcommand{\btheta}{\boldsymbol{\theta}}
+\newcommand{\bbeta}{\boldsymbol{\beta}}
 
-\title[Targeted SGMCMC for Crypto HMMs]{Targeted Subsampling for Crypto Regime Models}
-\subtitle{What worked, what failed, and why online weighting is still the money idea}
-\author{Diego Luca Gonzalez Gauss}
-\institute{STAT 221 Final Project}
-\date{\today}
+% XXX FIX THIS
+\title{Are you stressed? Bayesian Regime Detection in Crypto Markets}
+\subtitle{Learning Which Data Matters for Scalable HMM Inference}
+\author{Diego Luca Gonzalez Gauss, Enrico Yao-Bate, Haozhe Yang}
+\institute{STAT 221 Spring 2026 Final Project}
+\date{May 5, 2026}
 
 \begin{document}
 
@@ -33,340 +36,207 @@
   \Large
   Can we do scalable Bayesian regime inference for crypto returns?
 
-  \vspace{1em}
+  \vspace{0.8em}
   \normalsize
   \begin{block}{Why this is interesting}
-    Crypto markets switch between calm, stressed, and chaos regimes. If we can infer those regimes fast and with uncertainty, we get better risk control, drawdown avoidance, and possibly, yes, more mooolah.
+    Crypto markets switch between calm, stress, and chaos regimes. If we can infer which regime we are in, fast and with calibrated uncertainty, we get risk control and drawdown avoidance.
   \end{block}
 
   \begin{block}{Why this is hard}
-    HMM likelihoods want full forward-backward passes. SGMCMC avoids full passes by using subsequences, but uniform subsequences miss rare/high-impact regimes.
+    The natural model for regime-switching is a Hidden Markov Model (HMM). But HMM posteriors are expensive to compute, and the standard tools for scaling inference introduce new problems of their own.
   \end{block}
 \end{frame}
 
-\begin{frame}{The modeling target}
+\begin{frame}{Why an HMM for crypto returns?}
   \begin{columns}[T]
     \begin{column}{0.55\linewidth}
+      Crypto assets go through extended periods of low volatility where daily returns are small and centered near zero. Then, abruptly, daily moves of 10-20\% become common, correlations spike, and drawdowns cascade across assets. These shifts are discrete, not gradual. An HMM captures this:
       \begin{itemize}
-        \item Observations: daily crypto returns.
-        \item Latent state $z_t$: market regime.
-        \item Emission model:
+        \item Latent state $z_t \in \{1, \dots, K\}$: market regime.
+        \item Return distribution depends on the regime:
         \[
-          y_t \mid z_t=k \sim f_k(\theta_k).
+          y_t \mid z_t=k \sim \mathcal{N}(\mu_k, \Sigma_k).
         \]
-        \item Transition:
+        \item Regimes tend to persist, i.e. if we are in calm today, we are likely in calm tomorrow:
         \[
           z_t \mid z_{t-1} \sim \operatorname{Categorical}(A_{z_{t-1},:}).
         \]
       \end{itemize}
     \end{column}
-    \begin{column}{0.42\linewidth}
-      \begin{block}{Interpretation}
-        State 0 might be ``normal market.''
+    \begin{column}{0.40\linewidth}
+      \begin{block}{Example states}
+        0: calm / low volatility.
 
-        State 1 might be ``stress/high volatility.''
+        1: stressed / increasing volatility.
 
-        A good posterior answers: are we entering the bad regime, and how sure are we?
+        2: chaos / extreme volatility
       \end{block}
     \end{column}
   \end{columns}
+\end{frame}
+
+\begin{frame}{Why MCMC?}
+  We want the full posterior $p(z_t \mid y_{1:T}, \btheta)$ over model parameters and latent states. But it is complex because it is high-dimensional (transition matrix, emission parameters for each state) and involves discrete latent variables.
+
+  \vspace{0.5em}
+  \begin{itemize}
+    \item EM gives a point estimate but no uncertainty quantification.
+    \item Variational methods require choosing an approximating family, which can miss important posterior structure.
+    \item MCMC targets the exact posterior.
+  \end{itemize}
+
+  \vspace{0.3em}
+  \begin{block}{The problem}
+    MCMC requires the full posterior gradient at every step. For an HMM, this means an $O(TK^2)$ forward-backward pass over the entire series. For long series, this is prohibitive.
+  \end{block}
 \end{frame}
 
 \begin{frame}{Why stochastic-gradient MCMC?}
-  Split the time series into blocks $C_1,\dots,C_B$:
+  The idea is that because the HMM log-posterior decomposes as a sum over time, instead of computing the full gradient, we can approximate it by sampling $M$ block indices $I_1, \dots, I_M$ from a distribution $p$ over the $B$ blocks, and reweighting by their sampling probabilities:
   \[
-    \log p(\theta \mid y_{1:T})
-    =
-    \log p(\theta)+\sum_{b=1}^B \ell_b(\theta).
-  \]
-
-  Full gradient:
-  \[
-    G(\theta)=\nabla\log p(\theta)+\sum_{b=1}^B g_b(\theta),
-    \qquad g_b(\theta)=\nabla \ell_b(\theta).
-  \]
-
-  Stochastic-gradient MCMC replaces the sum with sampled blocks:
-  \[
-    \widehat G(\theta)=
-    \nabla\log p(\theta)
+    \widehat G(\btheta)=
+    \nabla\log p(\btheta)
     +
     \frac{1}{M}\sum_{m=1}^M
-    \frac{g_{I_m}(\theta)}{p_{I_m}}.
+    \frac{g_{I_m}(\btheta)}{p_{I_m}},
+    \qquad g_b(\btheta)=\nabla \ell_b(\btheta).
   \]
 
-  \begin{block}{Core design choice}
-    Which blocks should we sample?
+  SGLD update (Welling \& Teh, 2011):
+  \[
+    \btheta_{t+1} = \btheta_t + \frac{\eta_t}{2}\,\widehat{G}(\btheta_t) + \xi_t, \qquad \xi_t \sim \mathcal{N}(0, \eta_t\, I).
+  \]
+\end{frame}
+
+\begin{frame}{The lower-level question}
+  \Large
+  How should we set the block sampling distribution $p$?
+
+  \vspace{0.8em}
+  \normalsize
+  A first-pass answer is uniform sampling $p_b = 1/B$ since it is unbiased and simple. However, it ignores the fact that not all blocks are equally informative. 
+  
+  \vspace{0.5em}
+  In crypto, most blocks capture sideways price action, and only a few contain crashes, liquidation cascades, or regime transitions. These rare blocks carry most of the gradient signal for stress-regime parameters, meaning that if we consistently under-sample them, we may lose the ability to accurately detect when the market is entering or exiting a stress regime.
+
+  \vspace{0.5em}
+  \begin{block}{The statistical computing question}
+    How should we set the block sampling distribution $p$ in SG-MCMC for HMMs to ensure rare but informative regimes are adequately represented in the gradient estimate?
   \end{block}
 \end{frame}
 
-\begin{frame}{Uniform sampling is easy, but kind of dumb}
-  \begin{columns}[T]
-    \begin{column}{0.52\linewidth}
-      Uniform block sampling:
+\begin{frame}{An existing answer: TASS (Ou, Young, Sen, Dunson, 2024)}
+  \begin{block}{Their answer}
+    Sample each block in proportion to how much gradient signal it carries, so blocks that matter more for the posterior get sampled more often.
+  \end{block}
+
+  \vspace{0.3em}
+  Formally, we want to choose sampling weights $a_n$ that minimize the variance of our stochastic gradient estimator $\E\|\widehat{\nabla} - \nabla\|^2$. If we knew the latent states $z_t$, we could compute each block's gradient contribution
+  \[
+    g_n(\btheta) = \sum_{t \in C_n} \nabla_{\btheta} \left[\log p(y_t \mid z_t) + \log p(z_t \mid z_{t-1})\right].
+  \]
+  and just as we set proposal weights proportional to the integrand in importance sampling, the variance-optimal thing to do here is to set block weights $a_n^\star$ proportional to gradient norms.
+
+  \vspace{0.3em}
+  \textbf{Problem:} these weights require knowing the latent states $z_t$, which are exactly what we are trying to infer, and the current parameter $\btheta$, which changes at every MCMC step.
+\end{frame}
+
+\begin{frame}{How TASS approximates optimal weights in practice}
+  \begin{enumerate}
+    \item \textbf{Cluster observations:} run $K$-means on $y_1, \ldots, y_T$ to get proxy state labels $\hat{z}_t$. 
+    \item \textbf{Compute approximate block gradients:} evaluate the block gradient formula with $\hat{z}_t$ in place of $z_t$ and $\btheta$ fixed at $\btheta_{\mathrm{MAP}}$:
       \[
-        p_b=\frac{1}{B}.
+        \tilde{g}_n = \sum_{t \in C_n} \nabla_{\btheta} \left[\log p(y_t \mid \hat{z}_t) + \log p(\hat{z}_t \mid \hat{z}_{t-1})\right]\bigg|_{\btheta = \btheta_{\mathrm{MAP}}}.
       \]
+    \item \textbf{Set weights:}
+      $\displaystyle\tilde{a}_n = \frac{\norm{\tilde{g}_n}}{\sum_{n'=1}^{N}\norm{\tilde{g}_{n'}}}$ so blocks with many rare-state observations get large $\tilde{a}_n$.
+    \item \textbf{Sample:} draw blocks with probabilities
+      $\displaystyle p_n^{\mathrm{TASS}} = (1-\lambda)\,\tilde{a}_n + \frac{\lambda}{N},$ where the $\lambda/N$ is to ensure every block still has a chance to be sampled.
+  \end{enumerate} 
 
-      \vspace{0.8em}
-      This is unbiased and simple.
-
-      \vspace{0.8em}
-      But if most blocks are boring and a few blocks contain crashes, jumps, or rare regimes, uniform sampling spends most computation on low-value blocks.
-    \end{column}
-    \begin{column}{0.42\linewidth}
-      \begin{block}{Crypto analogy}
-        Uniform sampling treats a sideways Tuesday and an exchange-liquidation cascade as equally informative.
-
-        That is emotionally democratic.
-
-        It is not computationally optimal.
-      \end{block}
-    \end{column}
-  \end{columns}
-\end{frame}
-
-\begin{frame}{TASS: targeted subsampling from Ou, Young, Sen, Dunson 2024}
-  \begin{block}{Rationale}
-    For HMMs with rare latent states, uniform subsequences often exclude rare-state observations. Then gradients for rare-state parameters are noisy or prior-dominated.
-  \end{block}
-
-  If latent states were known, define the component-wise block gradient
-  \[
-    \gamma_{n,i}(\theta)=
-    \sum_{t\in C_n}
-    \partial_{\theta_i}
-    \left[
-      \log p_\theta(y_t\mid x_t)
-      +\log p_\theta(x_t\mid x_{t-1})
-    \right].
-  \]
-
-  For component $i$, an unbiased one-block estimator is
-  \[
-    \widehat G_i=\frac{\gamma_{J,i}}{a^{(i)}_J},
-    \qquad J\sim a^{(i)}.
-  \]
-\end{frame}
-
-\begin{frame}{TASS math in one slide}
-  The second moment is
-  \[
-    \E\{\widehat G_i^2\}
-    =
-    \sum_{n=1}^B
-    \frac{\gamma_{n,i}(\theta)^2}{a_n^{(i)}}.
-  \]
-
-  Minimize over probabilities $a_n^{(i)}$:
-  \[
-    a_n^{(i),\star}
-    \propto
-    |\gamma_{n,i}(\theta)|.
-  \]
-
-  \begin{block}{Translation}
-    Sample blocks in proportion to how much they matter for that parameter.
-  \end{block}
-
-  \begin{block}{Practical TASS approximation}
-    Replace unknown states by initial cluster labels, fix weights near a pilot/MAP value, and over-sample blocks with rare/extreme clusters.
+  \vspace{0.3em}
+  \begin{block}{Limitation}
+    TASS weights are static. They only use emission values (through $K$-means), and cannot adapt if the importance of blocks shifts as the chain explores the posterior.
   \end{block}
 \end{frame}
 
-\begin{frame}{Where our online model enters}
-  Static TASS computes weights once:
-  \[
-    p_b^{S}
-    =
-    (1-\lambda)
-    \frac{\widehat a_b^{S}}{\sum_r \widehat a_r^{S}}
-    +
-    \frac{\lambda}{B}.
-  \]
+\begin{frame}{Our answer: learn which blocks matter during sampling}
+    \begin{block}{High-level idea}
+      Replace the static weights with a model that predicts each block's gradient importance from observable features, and updates those predictions during sampling using gradient feedback.
+    \end{block}
 
-  \vspace{0.7em}
-  Online weighting asks:
-
-  \begin{center}
-    \Large
-    Can the chain learn which blocks are important as it runs?
-  \end{center}
-
-  We build block features $w_b$:
+  \vspace{0.5em}
+  For each block $C_n$, we compute a feature vector $w_n \in \mathbb{R}^p$ from the observations in that block:
   \begin{itemize}
-    \item absolute returns,
-    \item squared returns,
-    \item rolling volatility,
-    \item market-wide stress,
-    \item cross-sectional dispersion.
+    \item mean absolute return, mean squared return,
+    \item rolling volatility (within-block standard deviation),
+    \item cross-sectional dispersion (spread across similar assets),
+    \item tail event counts (number of returns exceeding a threshold),
+    \item downside pressure (fraction of negative returns).
   \end{itemize}
+  These are observable proxies for regime activity since stress blocks tend to have high volatility, large returns, and high dispersion.
+\end{frame}
 
-  Then fit a streaming model:
+\begin{frame}{The online weight model}
+  Recall from TASS that the optimal weight for block $n$ is $a_n^\star \propto \|g_n(\btheta)\|$. We want to predict this from the block features $w_n$, and update the prediction as $\btheta$ changes during sampling. 
+
+  \vspace{0.5em}
+  We opt to do this by turning it into a regression problem. Gradient norms are positive and vary over orders of magnitude, so we model the log-squared norm as linear in features:
   \[
-    \widehat a_{b,t}^{O}
+    \log \norm{g_n(\btheta_t)}^2 \;\approx\; \widehat\bbeta_t^\top w_n,
+  \]
+  where $\widehat\bbeta_t \in \mathbb{R}^p$ is a coefficient vector, updated at each MCMC step $t$, that captures how each feature relates to gradient importance. This gives natural importance weight estimates
+  \[
+    \widehat a_{n,t} = \exp\!\bigl(\tfrac{1}{2}\,\widehat\bbeta_t^\top w_n\bigr) \;\approx\; \norm{g_n(\btheta_t)}.
+  \]
+
+  \vspace{0.5em}
+  As in TASS, we convert weights to sampling probabilities with a uniform exploration floor:
+  \[
+    p_{n,t}
     =
-    \exp\{\widehat\beta_t^\top w_b/2\}
-    \approx
-    \norm{g_b(\theta_t)}.
+    (1-\lambda)\,
+    \frac{\widehat a_{n,t}}{\sum_{n'=1}^N \widehat a_{n',t}}
+    +
+    \frac{\lambda}{N}.
   \]
 \end{frame}
 
-\begin{frame}{Online weighting rule}
-  Observe sampled block-gradient feedback:
+\begin{frame}{Fitting $\widehat\bbeta_t$ by discounted ridge regression}
+  At each SGLD step $t$, after sampling block $C_{n_s}$ and computing its gradient, we observe what we call the \textbf{feedback response} for our regression:
   \[
-    z_s=\log\{\norm{\widetilde g_{I_s}(\theta_s)}^2+\epsilon\}.
+    f_s = \log\bigl(\norm{g_{n_s}(\btheta_s)}^2 + \epsilon\bigr),
   \]
+  where $\epsilon > 0$ prevents $\log 0$. We now have a training pair $(w_{n_s},\, f_s)$ and can update $\widehat\bbeta_t$.
 
-  Discounted ridge update:
+  \vspace{0.3em}
+  We need a regression method that (a) adapts to non-stationarity, since block importance shifts as $\btheta$ moves, and (b) has a cheap closed-form update, since it runs inside every SGLD step. Discounted ridge regression satisfies both, so we do
   \[
-    \widehat\beta_t
+    \widehat\bbeta_t
     =
-    \arg\min_\beta
-    \sum_{s<t}
+    \arg\min_{\bbeta}
+    \sum_{s < t}
     \rho^{t-s}
-    \left(z_s-\beta^\top w_{I_s}\right)^2
-    +
-    \tau\norm{\beta}^2.
+    \bigl(f_s - \bbeta^\top w_{n_s}\bigr)^2
+    +\tau\norm{\bbeta}^2,
   \]
+  where the \textbf{discount} $\rho \in (0,1)$  down-weights old observations exponentially, so the model tracks shifting importance rather than averaging over the entire chain history, while our \textbf{ridge penalty} $\tau > 0$ regularizes early in the chain when few blocks have been sampled.
 
-  Sampling rule:
-  \[
-    p_{b,t}^{O}
-    =
-    (1-\lambda)
-    \frac{\exp\{\widehat\beta_t^\top w_b/2\}}
-    {\sum_r \exp\{\widehat\beta_t^\top w_r/2\}}
-    +
-    \frac{\lambda}{B}.
-  \]
+  \vspace{0.5em}
+  This has a closed-form recursive update ($O(p^2)$ per step), so it is cheap enough to run inside every SGLD iteration
 \end{frame}
 
-\begin{frame}{When online weighting should help}
-  Let $a_b=\norm{g_b(\theta)}$.
-
-  Uniform second moment:
+\begin{frame}{When does online beat static?}
+  Write $a_n = \norm{g_n(\btheta)}$ for the true gradient norm of block $n$. The stochastic gradient variance under uniform sampling is inflated by a factor of
   \[
-    B\sum_b a_b^2.
-  \]
-
-  Oracle importance sampling:
-  \[
-    p_b^\star\propto a_b,
+    1 + \CV(a)^2,
     \qquad
-    \text{second moment }=\left(\sum_b a_b\right)^2.
+    \text{where } \CV(a) = \frac{\mathrm{sd}(a_1,\ldots,a_N)}{\mathrm{mean}(a_1,\ldots,a_N)}.
   \]
+  When gradient norms are heterogeneous across blocks (high $\CV$), uniform sampling wastes most of its budget on low-signal blocks.
 
-  Uniform inefficiency:
-  \[
-    \frac{B\sum_b a_b^2}{(\sum_b a_b)^2}
-    =
-    1+\CV(a)^2.
-  \]
-
-  \begin{block}{The whole game}
-    Online weighting helps when block gradient norms are heterogeneous and predictable.
-  \end{block}
-\end{frame}
-
-\begin{frame}{Online vs static TASS: formal comparison}
-  Let current block importance be
-  \[
-    a_{b,t}=\norm{g_b(\theta_t)}.
-  \]
-
-  For any sampling rule $p$, define the stochastic-gradient second moment
-  \[
-    Q_t(p)=\sum_{b=1}^B \frac{a_{b,t}^2}{p_b}.
-  \]
-
-  \begin{block}{Exact win condition}
-    Online is mathematically better than static TASS at time $t$ iff
-    \[
-      Q_t(p_t^O)<Q_t(p^S).
-    \]
-  \end{block}
-
-  \begin{block}{Interpretation}
-    Static loses when $\widehat a_b^S$ is a stale proxy for today's $a_{b,t}$; online wins when $\widehat a_{b,t}^O$ tracks today's high-gradient blocks better.
-  \end{block}
-\end{frame}
-
-\begin{frame}{Prediction-error view of static vs online}
-  Ignore the small exploration floor for intuition and write
-  \[
-    \widehat a_{b,t}=a_{b,t}\exp(\delta_{b,t}),
-    \qquad
-    \pi_{b,t}=\frac{a_{b,t}}{\sum_r a_{r,t}}.
-  \]
-
-  Then the inefficiency relative to oracle is exactly
-  \[
-    \frac{Q_t(\widehat p_t)}
-    {Q_t(p_t^\star)}
-    =
-    \E_{\pi_t}[e^{\delta_t}]
-    \E_{\pi_t}[e^{-\delta_t}].
-  \]
-
-  Therefore online beats static when
-  \[
-    \E_{\pi_t}[e^{\delta^O_t}]
-    \E_{\pi_t}[e^{-\delta^O_t}]
-    <
-    \E_{\pi_t}[e^{\delta^S_t}]
-    \E_{\pi_t}[e^{-\delta^S_t}].
-  \]
-
-  \begin{block}{Bounded-error sufficient condition}
-    If $|\delta^O_{b,t}|\le\varepsilon^O_t$ and $|\delta^S_{b,t}|\le\varepsilon^S_t$, smaller current error means smaller worst-case inefficiency: $e^{2\varepsilon^O_t}<e^{2\varepsilon^S_t}$.
-  \end{block}
-\end{frame}
-
-\begin{frame}{When should the update beat static?}
-  Suppose current log-importance follows a drifting feature model:
-  \[
-    \log a_{b,t}
-    =
-    \frac{1}{2}\beta_t^\top w_b+\xi_{b,t}.
-  \]
-
-  Static TASS uses a frozen pilot $\widehat\beta_0$:
-  \[
-    \delta^S_{b,t}
-    \approx
-    \frac{1}{2}(\widehat\beta_0-\beta_t)^\top w_b.
-  \]
-
-  Online uses the discounted update $\widehat\beta_t$:
-  \[
-    \delta^O_{b,t}
-    \approx
-    \frac{1}{2}(\widehat\beta_t-\beta_t)^\top w_b.
-  \]
-
-  \begin{block}{Clean sufficient story}
-    Online beats static when current estimation error is smaller than stale-model drift:
-    \[
-      \sup_b |(\widehat\beta_t-\beta_t)^\top w_b|
-      <
-      \sup_b |(\widehat\beta_0-\beta_t)^\top w_b|.
-    \]
-  \end{block}
-\end{frame}
-
-\begin{frame}{A sufficient condition}
-  \small
-  Suppose predicted gradient norms satisfy
-  \[
-    e^{-\varepsilon}a_b
-    \le
-    \widehat a_b
-    \le
-    e^\varepsilon a_b.
-  \]
-
-  With exploration floor $\lambda$, online beats uniform if
+  \vspace{0.3em}
+  Online beats uniform whenever its prediction error $\varepsilon$ (worst-case log-ratio between predicted and true weights) satisfies
   \[
     \frac{e^{2\varepsilon}}{1-\lambda}
     <
@@ -374,8 +244,9 @@
   \]
 
   \begin{center}
-    \includegraphics[height=0.42\textheight]{online_usefulness_region.pdf}
+    \includegraphics[height=0.35\textheight]{online_usefulness_region.pdf}
   \end{center}
+  \small In crypto with rare stress regimes, $\CV$ is large and our features predict well $\Rightarrow$ online weighting helps.
 \end{frame}
 
 \begin{frame}{Scale down to an actual crypto task}
