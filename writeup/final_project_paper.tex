@@ -13,7 +13,7 @@
 \usepackage{hyperref}
 \usepackage{xcolor}
 
-\graphicspath{{paper_assets/}}
+\graphicspath{{../paper_assets/}}
 
 \newtheorem{definition}{Definition}
 \newtheorem{proposition}{Proposition}
@@ -322,7 +322,7 @@ We evaluate on 61 rolling forecasts after an initial warmup and history window. 
   \centering
   \caption{Actual crypto stress-prediction task. The target is whether the next 10-day equal-weight crypto basket return is below $-7\%$. Online weighting gives the best log loss, Brier score, AUC, and concentration of realized stress events in the top-risk quartile. The risk-off strategy is included as an interpretable diagnostic rather than a production trading rule.}
   \label{tab:actual-crypto-risk}
-  \resizebox{\linewidth}{!}{\input{paper_assets/table_actual_crypto_risk.tex}}
+  \resizebox{\linewidth}{!}{\input{../paper_assets/table_actual_crypto_risk.tex}}
 \end{table}
 
 The online method has the best forecasting metrics: log loss $0.524$, Brier score $0.172$, AUC $0.625$, and a top-risk-quartile stress rate of $37.5\%$ versus $25.0\%$ for both uniform and static TASS. This is the empirical regime in which Proposition~\ref{prop:online-useful} is meant to be useful: the important examples are not uniformly distributed, and a streaming feature model can identify them better than a frozen rule. The risk-off curve is more mixed. Online improves substantially over uniform and buy-and-hold, while static TASS has the best total return in this simple threshold rule. We therefore interpret the trading diagnostic cautiously: online is the best risk forecaster in this benchmark, but thresholded trading performance is a noisier downstream functional.
@@ -349,7 +349,7 @@ We also ran a mechanism-level benchmark using the Stan two-state HMM stress prob
   \centering
   \caption{Real-data HMM-style gradient-estimator benchmark. The target is stress-state emission-gradient contribution by 10-day block, constructed from the real crypto panel and Stan K=2 smoothed stress probabilities. Lower RMSE is better.}
   \label{tab:real-gradient-benchmark}
-  \input{paper_assets/table_real_gradient_benchmark.tex}
+  \input{../paper_assets/table_real_gradient_benchmark.tex}
 \end{table}
 
 \section{Scaling to Full HMM Posterior Inference}
@@ -367,7 +367,7 @@ The original model was a three-state multivariate Student-$t$ HMM on raw returns
   \centering
   \caption{State occupancy summaries for the original Student-$t$ model and the rolling-standardized Gaussian comparisons. The original $K=3$ Student-$t$ model collapses into state 0. The $K=2$ Gaussian model gives healthier occupancies near a 60/40 split.}
   \label{tab:occupancy}
-  \resizebox{\linewidth}{!}{\input{paper_assets/table_occupancy.tex}}
+  \resizebox{\linewidth}{!}{\input{../paper_assets/table_occupancy.tex}}
 \end{table}
 
 \subsection{Rolling-standardized two-state Gaussian crypto model}
@@ -387,7 +387,7 @@ However, interpretability of the smoothed states should not be confused with rel
   \centering
   \caption{SGLD diagnostics aggregated from saved four-chain runs. Values are computed on scalar posterior summaries such as transition probabilities, state covariance traces, and selected means. All stochastic-gradient runs have poor mixing by conventional standards.}
   \label{tab:sgmcmc-diag}
-  \resizebox{\linewidth}{!}{\input{paper_assets/table_sgmcmc_diagnostics.tex}}
+  \resizebox{\linewidth}{!}{\input{../paper_assets/table_sgmcmc_diagnostics.tex}}
 \end{table}
 
 \subsection{Stan comparison}
@@ -398,7 +398,7 @@ Stan/NUTS was used as a reference implementation for the rolling-standardized Ga
   \centering
   \caption{Stan/NUTS diagnostics for rolling-standardized Gaussian HMMs. Stan succeeds for $K=2$ but not for $K=3$, supporting the conclusion that three crypto regimes are weakly identified under this specification.}
   \label{tab:stan-diag}
-  \input{paper_assets/table_stan_diagnostics.tex}
+  \input{../paper_assets/table_stan_diagnostics.tex}
 \end{table}
 
 \subsection{Simulated benchmarks}
